@@ -26,10 +26,10 @@ cargo add benchy
 use benchy::{benchmark, BenchmarkRun};
 
 #[benchmark]
-fn fibonacci_single(run: &mut BenchmarkRun) {
+fn fibonacci_single(b: &mut BenchmarkRun) {
     let mut x = 0;
     let mut y = 1;
-    run.run(|| {
+    b.run(|| {
         for _ in 0..1_000_000 {
             let temp = x;
             x = y;
@@ -42,10 +42,10 @@ fn fibonacci_single(run: &mut BenchmarkRun) {
     ("1 million iterations", 1_000_000),
     ("2 million iterations", 2_000_000),
 ])]
-fn fibonacci_parametrized(run: &mut BenchmarkRun, iterations: usize) {
+fn fibonacci_parametrized(b: &mut BenchmarkRun, iterations: usize) {
     let mut x = 0;
     let mut y = 1;
-    run.run(|| {
+    b.run(|| {
         for _ in 0..iterations {
             let temp = x;
             x = y;
