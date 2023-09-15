@@ -1,5 +1,6 @@
 [package]
 name = "benchy"
+description = "Benchy is a crate for benchmarking long-running tasks"
 version = "0.1.0"
 edition = "2021"
 
