@@ -1,0 +1,75 @@
+{
+  "name": "test_bench",
+  "results": [
+    {
+      "name": "add",
+      "results": [
+        {
+          "metrics": {
+            "memory_usage_bytes": 0
+          },
+          "name": "test",
+          "time": {
+            "nanos": 8,
+            "secs": 0
+          }
+        },
+        {
+          "metrics": {
+            "memory_usage_bytes": 0
+          },
+          "name": "param from fn",
+          "time": {
+            "nanos": 16,
+            "secs": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "add",
+      "results": [
+        {
+          "metrics": {
+            "memory_usage_bytes": 0
+          },
+          "name": "inside adder",
+          "time": {
+            "nanos": 16,
+            "secs": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "assert",
+      "results": [
+        {
+          "metrics": {
+            "memory_usage_bytes": 0
+          },
+          "name": "assert",
+          "time": {
+            "nanos": 8,
+            "secs": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "assert2",
+      "results": [
+        {
+          "metrics": {
+            "memory_usage_bytes": 0
+          },
+          "name": "assert2",
+          "time": {
+            "nanos": 16,
+            "secs": 0
+          }
+        }
+      ]
+    }
+  ]
+}
