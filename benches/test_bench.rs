@@ -38,4 +38,13 @@ fn assert_renamed(b: &mut benchy::BenchmarkRun) {
 }
 
 // benchy::main!("adders", add, adder::add);
-benchy::main!(add, adder::add, assert, assert_renamed);
+benchy::main!(
+    add,
+    adder::add,
+    assert,
+    assert_renamed,
+    config = benchy::BenchmarkConfig {
+        output_dir: Some(env!("CARGO_MANIFEST_DIR").to_owned() + "/benches/results"),
+        ..benchy::BenchmarkConfig::from_env()
+    }
+);

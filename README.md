@@ -67,8 +67,23 @@ harness = false
 
 For more advanced usage, check the [zk-bench](https://github.com/polybase/zk-benchmarks) repository that utilizes this crate, or refer to the [documentation](https://docs.rs/benchy).
 
-## Environment variables
+## Configuration
+
+### Environment variables
 
 - `BENCHY_QUICK` (default: false) - if true, runs only the first parameter of each benchmark.
 - `BENCHY_OUTPUT_DIR` (default: None) - directory to output the JSON benchmark results to.
 - `BENCHY_MAX_DEFAULT_ITERATIONS_DURATION` (default: 10s) - the maximum total duration for the default (10) iterations of a single benchmark.
+
+### From code
+
+The `main!` macro accepts a `config = ...` parameter that allows you to specify the configuration values from code.
+
+```rust
+benchy::main!(
+    config = benchy::BenchmarkConfig {
+        output_dir: Some(env!("CARGO_MANIFEST_DIR").to_owned() + "/benches/results"),
+        ..benchy::BenchmarkConfig::from_env()
+    }
+);
+```

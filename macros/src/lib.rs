@@ -1,10 +1,11 @@
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{LitStr, Token};
+use syn::{parse::discouraged::Speculative, LitStr, Token};
 
 /// Parses the inner part of main!("name", fn1, fn2) or main!(fn1, fn2)
 struct MainArgs {
     name: Option<String>,
+    config: Option<syn::Expr>,
     benchmarks: Vec<syn::Path>,
 }
 
@@ -20,8 +21,27 @@ impl syn::parse::Parse for MainArgs {
             input.parse::<Token![,]>()?;
         }
 
+        let mut config = None;
+
         let mut benchmarks = Vec::new();
         while !input.is_empty() {
+            let config_input_fork = input.fork();
+            if let Ok(ident) = config_input_fork.parse::<syn::Ident>() {
+                if ident == "config" {
+                    input.advance_to(&config_input_fork);
+                    drop(config_input_fork);
+
+                    input.parse::<Token![=]>()?;
+                    config = Some(input.parse::<syn::Expr>()?);
+
+                    if input.is_empty() {
+                        break;
+                    }
+                    input.parse::<Token![,]>()?;
+                    continue;
+                }
+            }
+
             let benchmark = input.parse::<syn::Path>()?;
             benchmarks.push(benchmark);
             if input.is_empty() {
@@ -30,7 +50,11 @@ impl syn::parse::Parse for MainArgs {
             input.parse::<syn::Token![,]>()?;
         }
 
-        Ok(MainArgs { name, benchmarks })
+        Ok(MainArgs {
+            name,
+            config,
+            benchmarks,
+        })
     }
 }
 
@@ -46,7 +70,13 @@ pub fn main(item: TokenStream) -> TokenStream {
         .into()
 }
 
-fn expand_main(MainArgs { name, benchmarks }: MainArgs) -> syn::Result<proc_macro2::TokenStream> {
+fn expand_main(
+    MainArgs {
+        name,
+        config,
+        benchmarks,
+    }: MainArgs,
+) -> syn::Result<proc_macro2::TokenStream> {
     let mut bench_runs = Vec::new();
     for mut bench in benchmarks {
         let bench_struct_path = {
@@ -84,12 +114,21 @@ fn expand_main(MainArgs { name, benchmarks }: MainArgs) -> syn::Result<proc_macr
         },
     };
 
+    let bench_expr = match config {
+        Some(config) => quote! {
+            _benchy::Benchmark::with_config(#name, #config)
+        },
+        None => quote! {
+            _benchy::Benchmark::from_env(#name)
+        },
+    };
+
     Ok(quote! {
         fn main() {
             extern crate benchy as _benchy;
             use _benchy::BenchmarkFn;
 
-            let mut bench = _benchy::Benchmark::from_env(#name);
+            let mut bench = #bench_expr;
 
             #(#bench_runs)*
 
@@ -211,4 +250,65 @@ fn expand_benchmark(attr: TokenStream, item: TokenStream) -> syn::Result<proc_ma
 
         #item_fn
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_main_empty() {
+        let main_args = syn::parse2::<super::MainArgs>(quote! {}).unwrap();
+
+        assert_eq!(main_args.name, None);
+        assert!(main_args.config.is_none());
+        assert!(main_args.benchmarks.is_empty());
+    }
+
+    #[test]
+    fn parse_main_with_name_and_fns() {
+        let main_args = syn::parse2::<super::MainArgs>(quote! {
+            "name", fn1, fn2
+        })
+        .unwrap();
+
+        assert_eq!(main_args.name, Some("name".to_owned()));
+        assert!(main_args.config.is_none());
+        assert_eq!(main_args.benchmarks.len(), 2);
+        assert_eq!(main_args.benchmarks[0].segments.len(), 1);
+        assert_eq!(main_args.benchmarks[0].segments[0].ident, "fn1");
+        assert_eq!(main_args.benchmarks[1].segments.len(), 1);
+        assert_eq!(main_args.benchmarks[1].segments[0].ident, "fn2");
+    }
+
+    #[test]
+    fn parse_main_with_fns() {
+        let main_args = syn::parse2::<super::MainArgs>(quote! {
+            fn1, fn2
+        })
+        .unwrap();
+
+        assert_eq!(main_args.name, None);
+        assert!(main_args.config.is_none());
+        assert_eq!(main_args.benchmarks.len(), 2);
+        assert_eq!(main_args.benchmarks[0].segments.len(), 1);
+        assert_eq!(main_args.benchmarks[0].segments[0].ident, "fn1");
+        assert_eq!(main_args.benchmarks[1].segments.len(), 1);
+        assert_eq!(main_args.benchmarks[1].segments[0].ident, "fn2");
+    }
+
+    #[test]
+    fn parse_main_with_config_and_fns() {
+        let main_args = syn::parse2::<super::MainArgs>(quote! {
+            fn1,
+            fn2,
+            config = BenchmarkConfig {
+                ..BenchmarkConfig::default()
+            }
+        })
+        .unwrap();
+
+        assert_eq!(main_args.name, None);
+        assert!(main_args.config.is_some());
+    }
 }
